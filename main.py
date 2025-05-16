@@ -5,7 +5,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.graphics.barcode import code128
 from datetime import datetime
-import os, platform, subprocess, logging, win32print
+import os, platform, subprocess, logging, win32print, win32api
 
 # Set up logging
 log_filename = "label_print_log.txt"
@@ -72,26 +72,22 @@ def create_pdf(filename, part_number, quantity, division, id_number):
 def print_pdf(filename):
     try:
         if platform.system() == "Windows":
-            printer_name = win32print.GetDefaultPrinter()
-            with open(filename, "rb") as f:
-                raw_data = f.read()
-
-            hPrinter = win32print.OpenPrinter(printer_name)
-            try:
-                hJob = win32print.StartDocPrinter(hPrinter, 1, ("Label Print", None, "RAW"))
-                win32print.StartPagePrinter(hPrinter)
-                win32print.WritePrinter(hPrinter, raw_data)
-                win32print.EndPagePrinter(hPrinter)
-                win32print.EndDocPrinter(hPrinter)
-                logging.info(f"PDF sent to printer: {printer_name}")
-                messagebox.showinfo("Success", f"Label sent to: {printer_name}")
-            finally:
-                win32print.ClosePrinter(hPrinter)
-
+            # Use the default system PDF viewer to print silently
+            win32api.ShellExecute(
+                0,
+                "print",
+                filename,
+                None,
+                ".",
+                0
+            )
+            logging.info(f"PDF sent to printer via ShellExecute: {filename}")
+            messagebox.showinfo("Success", "Label sent to printer.")
         else:
+            # For Unix-like systems
             subprocess.run(["lp", filename])
             logging.info("PDF sent to default printer (Unix-like system).")
-            messagebox.showinfo("Success", "Label was sent to printer")
+            messagebox.showinfo("Success", "Label sent to printer.")
     except Exception as e:
         logging.error(f"Failed to print PDF: {e}")
         messagebox.showerror("Print Error", f"An error occurred: {e}")
@@ -144,3 +140,4 @@ generate_button.grid(row=len(FIELD_LABELS), columnspan=2, pady=20)
 if __name__ == "__main__":
     logging.info("Application started.")
     root.mainloop()
+  
